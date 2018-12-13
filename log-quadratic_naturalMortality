@@ -1,0 +1,140 @@
+##Log-Quadratic Climate-Dependent Natural Mortality Model (QM) model code
+
+model {
+#year 1 abundance starting values for all age classes
+for(a in 2:3)
+{
+N[1,a] ~ dunif(10000,50000)
+}
+for(a in 4:A)
+{
+N[1,a] ~ dunif(100,2000)
+}
+
+#loop for year 1
+#across all age classes 0 to 7+
+for (a in 1:A)
+{
+#natural mortality log-quadratic relationship with GSI (BT)
+#natural mortality process error model
+Mortality[1,a] <- be+coeff*BT[1,1]+de*(BT[1,2]^2)
+Mort[1,a] ~ dlnorm(Mortality[1,a],tau_proc) #instant mort for age 0
+#Baranov catch equation and landings data observation model
+harv[1,a] <- (fishin[1,a]/(fishin[1,a]+Mort[1,a]))*(1-exp(-
+(Mort[1,a]+fishin[1,a])))*N[1,a]
+harvDat[1,a] ~ dlnorm(log(harv[1,a]), 9.2)
+#survival equation for year 1
+surVec[1,a] <- exp(-(Mort[1,a]+(fishin[1,a])))
+#trawl survey data abundance equation and observation model
+obsMean[1,a] <- q[1]*selectOne[a]*N[1,a]
+FishObs[1,a] ~ dlnorm(log(obsMean[1,a]),1.55) #observation error on data
+collected
+}
+#spawning stock biomass with temporally varying weight at age and fixed %
+mature
+SSB[1] <- 0.5*((0.90*N[1,2]*wt[1,2]) + (0.99*N[1, 3]*wt[1,3]) + N[1,
+4]*wt[1,4] + N[1, 5]*wt[1,5] + N[1, 6]*wt[1,6] + N[1, 7]*wt[1,7] +N[1,
+8]*wt[1,8])
+
+#cohort equations from years 2 to Y for all ages
+#Loop over years from 2:Y
+for(y in 2:Y)
+{
+#age 0 recruit equations
+#natural mortality log-quadratic relationship with GSI (BT) for age 0
+#natural mortality process error model for age 0
+Mortality[y,1] <- be+coeff*BT[y,1]+de*(BT[y,2]^2)
+Mort[y,1] ~ dlnorm(Mortality[y,1],tau_proc) #instant. mortality for age 1
+all years
+#Baranov catch equation and landings data observation model for age 0
+harv[y,1] <- (fishin[y,1]/(fishin[y,1]+Mort[y,1]))*(1-exp(-
+(Mort[y,1]+fishin[y,1])))*N[y,1]
+harvDat[y,1] ~ dlnorm(log(harv[y,1]),9.2)
+#survival for age 0 across all years
+surVec[y,1] <- exp(-(Mort[y,1]+ fishin[y,1])) #survival age 0 (no fishing
+mortality)
+#trawl survey data abundance equation and observation model for age 0
+N[y, 1] ~ dlnorm(log((alpha*SSB[y-1])/(1+beta*SSB[y-1])),sig)
+obsMean[y,1] <- ifelse(y < 14,q[y]*selectOne[1]*N[y,1],
+q[y]*selectTwo[1]*N[y,1])
+FishObs[y,1] ~ dlnorm(log(obsMean[y,1]),1.55) #observation error on data
+collected
+#loop over ages 2 to 6
+for(a in 2:(A-1))
+{
+#natural mortality log-quadratic relationship with GSI (BT) for ages 2
+to 6
+#natural mortality process error model for ages 2 to 6
+Mortality[y,a] <- be+coeff*BT[y,1]+de*(BT[y,2]^2)
+Mort[y,a] ~ dlnorm(Mortality[y,a],tau_proc) #process error on mortality
+estimate
+#Baranov catch equation and landings data observation model for ages 2
+to 6
+harv[y,a] <- (fishin[y,a]/(fishin[y,a]+Mort[y,a]))*(1-exp(-
+(Mort[y,a]+fishin[y,a])))*N[y,a]
+harvDat[y,a] ~ dlnorm(log(harv[y,a]), 9.2)
+#survival for age 2-6 across all years for ages 2 to 6
+surVec[y,a] <- exp(-(Mort[y,a]+ fishin[y,a]))
+#Observed catch, including observation error for ages 2 to 6
+N[y,a] <- surVec[y-1,a-1]* N[y-1,a-1]
+
+obsMean[y,a] <- ifelse(y < 14, q[y]*selectOne[a]*N[y,a],
+q[y]*selectTwo[a]*N[y,a])
+FishObs[y,a] ~ dlnorm(log(obsMean[y,a]),1.55) #observation error on
+data collected
+}
+#natural mortality log-quadratic relationship with GSI (BT) for age 7+
+#natural mortality process error model for age 7+
+Mortality[y,A] <- be+coeff*BT[y,1]+de*(BT[y,2]^2)
+Mort[y,A] ~ dlnorm(Mortality[y,A],tau_proc) #process error
+#Baranov catch equation and landings data observation model for age 7+
+harv[y,A] <- (fishin[y,A]/(fishin[y,A]+Mort[y,A]))*(1-exp(-
+(Mort[y,A]+fishin[y,A])))*N[y,A]
+harvDat[y,A] ~ dlnorm(log(harv[y,A]), 9.2)
+#survival for age 7+ across all years
+surVec[y,A] <- exp(-(Mort[y,A]+fishin[y,A]))
+#trawl survey data abundance equation and observation model for age 7+
+N[y,A] <- (surVec[y-1,A-1]* N[y-1,A-1]) + (surVec[y-1,A]* N[y-1,A])
+#final age class abundance
+obsMean[y,A] <- ifelse(y < 14, q[y]*selectOne[A]*N[y,A],
+q[y]*selectTwo[A]*N[y,A])
+FishObs[y,A] ~ dlnorm(log(obsMean[y,A]),1.55) #observation error on data
+collected
+#spawning stock biomass with temporally varying weight at age and fixed %
+mature
+SSB[y] <- 0.5*((0.90*N[y,2]*wt[y,2]) + (0.99*N[y, 3]*wt[y,3]) + N[y,
+4]*wt[y,4] + N[y, 5]*wt[y,5] + N[y, 6]*wt[y,6] + N[y, 7]*wt[y,7] +N[y,
+8]*wt[y,8])
+}
+
+#PRIORS
+for(y in 1:Y)
+{
+#catchability
+q[y] ~ dlnorm(-1.2,3)
+}
+for(a in 1:A)
+{
+#two selectivity blocks
+selectOne[a] ~ dunif(0,1)
+selectTwo[a] ~ dunif(0,1)
+for(y in 1:Y)
+{
+#fishing mortality rate
+
+fishin[y,a] ~ dunif(0,2.2)
+}
+}
+#Beverton-Holt parameters
+alpha ~ dlnorm(3,1)
+beta ~ dlnorm(2,1)
+#recruitment precision
+sig ~ dlnorm(-0.44,10)
+#process error precision
+tau_proc ~ dunif(2,10)
+#climate-dependent intercept (be), first (coeff), and second polynomial
+(de) coefficients
+coeff ~ dnorm(0,1)
+be ~ dunif(-1,1)
+de ~ dnorm(0,1)
+}
