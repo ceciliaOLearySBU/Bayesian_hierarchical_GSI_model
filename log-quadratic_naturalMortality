@@ -1,6 +1,10 @@
+##code written by Cecilia O'Leary
+##associated with O'Leary et al 2018 paper (http://www.nrcresearchpress.com/doi/abs/10.1139/cjfas-2018-0092#.XBK_jXRKhPY)
 ##Log-Quadratic Climate-Dependent Natural Mortality Model (QM) model code
+##implemented in R2Jags
 
-model {
+sink("climateDepMNonLin.jags")
+cat(" model {
  
 #year 1 abundance starting values for all age classes
 for(a in 2:3)
@@ -141,3 +145,5 @@ coeff ~ dnorm(0,1)
 be ~ dunif(-1,1)
 de ~ dnorm(0,1)
 }
+",fill = TRUE)
+sink()
